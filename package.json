@@ -1,0 +1,29 @@
+{
+  "name": "stitch-terminal",
+  "version": "1.0.0",
+  "description": "AI UI design from your terminal — Google Stitch MCP client",
+  "type": "module",
+  "bin": {
+    "stitch": "bin/stitch.js"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "stitch",
+    "google",
+    "mcp",
+    "ui-design",
+    "ai",
+    "cli"
+  ],
+  "license": "MIT",
+  "author": "Vedanth Bora",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VedanthB/stitch-cli"
+  }
+}

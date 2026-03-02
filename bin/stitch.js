@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import * as stitch from '../lib/stitch.js'
 import { formatProjects, formatScreens, formatScreen } from '../lib/format.js'
+import { login, logout } from '../lib/login.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8'))
@@ -12,6 +13,8 @@ const pkg = JSON.parse(readFileSync(join(__dirname, '..', 'package.json'), 'utf8
 const HELP = `stitch v${pkg.version} — AI UI design from your terminal (Google Stitch)
 
 Usage:
+  stitch login                             Log in with Google OAuth
+  stitch logout                            Remove saved credentials
   stitch projects                          List all projects
   stitch project <id>                      Get project details
   stitch screens <project-id>              List screens in a project
@@ -31,6 +34,7 @@ Options:
   --version, -v      Show version
 
 Examples:
+  stitch login
   stitch projects
   stitch generate 123456 "A login page with Google OAuth"
   stitch download 123456 abc123 -o login.html
@@ -73,6 +77,15 @@ async function main() {
       case 'version':
         console.log(pkg.version)
         break
+      case 'login': {
+        await login(options)
+        break
+      }
+      case 'logout': {
+        logout()
+        console.error('Logged out.')
+        break
+      }
       case 'projects': {
         const result = await stitch.listProjects(options)
         console.log(formatProjects(Array.isArray(result) ? result : [], options.json))

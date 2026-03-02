@@ -130,7 +130,7 @@ describe('listProjects()', () => {
     const captured = getCaptured();
     assert.equal(captured.params.name, 'list_projects');
     assert.deepEqual(captured.params.arguments, {});
-    assert.equal(result, '["proj-1","proj-2"]');
+    assert.deepEqual(result, ['proj-1', 'proj-2']);
   });
 });
 
@@ -161,8 +161,8 @@ describe('listScreens()', () => {
 
     const captured = getCaptured();
     assert.equal(captured.params.name, 'list_screens');
-    assert.deepEqual(captured.params.arguments, { parent: 'projects/proj-1' });
-    assert.equal(result, '[]');
+    assert.deepEqual(captured.params.arguments, { projectId: 'proj-1' });
+    assert.deepEqual(result, []);
   });
 });
 
@@ -179,6 +179,8 @@ describe('getScreen()', () => {
     assert.equal(captured.params.name, 'get_screen');
     assert.deepEqual(captured.params.arguments, {
       name: 'projects/proj-1/screens/scr-1',
+      projectId: 'proj-1',
+      screenId: 'scr-1',
     });
     assert.equal(result, '<html>hello</html>');
   });
@@ -196,85 +198,85 @@ describe('generateScreen()', () => {
     const captured = getCaptured();
     assert.equal(captured.params.name, 'generate_screen_from_text');
     assert.deepEqual(captured.params.arguments, {
-      parent: 'projects/proj-1',
-      text_prompt: 'A landing page',
-      device_type: 'DEVICE_TYPE_DESKTOP',
-      model_id: 'MODEL_ID_FLASH',
+      projectId: 'proj-1',
+      prompt: 'A landing page',
+      deviceType: 'DESKTOP',
+      modelId: 'GEMINI_3_FLASH',
     });
     assert.equal(result, 'generated');
   });
 
   // ── 6. device_type from options ──────────────────────────────────────
 
-  it('passes device_type from options (default: DEVICE_TYPE_DESKTOP)', async () => {
+  it('passes deviceType from options (default: DESKTOP)', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', AUTH_OPTS);
 
     const captured = getCaptured();
-    assert.equal(captured.params.arguments.device_type, 'DEVICE_TYPE_DESKTOP');
+    assert.equal(captured.params.arguments.deviceType, 'DESKTOP');
   });
 
   // ── 7. model_id from options ─────────────────────────────────────────
 
-  it('passes model_id from options (default: MODEL_ID_FLASH)', async () => {
+  it('passes modelId from options (default: GEMINI_3_FLASH)', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', AUTH_OPTS);
 
     const captured = getCaptured();
-    assert.equal(captured.params.arguments.model_id, 'MODEL_ID_FLASH');
+    assert.equal(captured.params.arguments.modelId, 'GEMINI_3_FLASH');
   });
 
   // ── 8. user-friendly device names ────────────────────────────────────
 
-  it('maps desktop → DEVICE_TYPE_DESKTOP', async () => {
+  it('maps desktop → DESKTOP', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', { ...AUTH_OPTS, device: 'desktop' });
 
-    assert.equal(getCaptured().params.arguments.device_type, 'DEVICE_TYPE_DESKTOP');
+    assert.equal(getCaptured().params.arguments.deviceType, 'DESKTOP');
   });
 
-  it('maps mobile → DEVICE_TYPE_MOBILE', async () => {
+  it('maps mobile → MOBILE', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', { ...AUTH_OPTS, device: 'mobile' });
 
-    assert.equal(getCaptured().params.arguments.device_type, 'DEVICE_TYPE_MOBILE');
+    assert.equal(getCaptured().params.arguments.deviceType, 'MOBILE');
   });
 
-  it('maps tablet → DEVICE_TYPE_TABLET', async () => {
+  it('maps tablet → TABLET', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', { ...AUTH_OPTS, device: 'tablet' });
 
-    assert.equal(getCaptured().params.arguments.device_type, 'DEVICE_TYPE_TABLET');
+    assert.equal(getCaptured().params.arguments.deviceType, 'TABLET');
   });
 
   // ── 9. user-friendly model names ─────────────────────────────────────
 
-  it('maps flash → MODEL_ID_FLASH', async () => {
+  it('maps flash → GEMINI_3_FLASH', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', { ...AUTH_OPTS, model: 'flash' });
 
-    assert.equal(getCaptured().params.arguments.model_id, 'MODEL_ID_FLASH');
+    assert.equal(getCaptured().params.arguments.modelId, 'GEMINI_3_FLASH');
   });
 
-  it('maps pro → MODEL_ID_PRO', async () => {
+  it('maps pro → GEMINI_3_PRO', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await generateScreen('p1', 'prompt', { ...AUTH_OPTS, model: 'pro' });
 
-    assert.equal(getCaptured().params.arguments.model_id, 'MODEL_ID_PRO');
+    assert.equal(getCaptured().params.arguments.modelId, 'GEMINI_3_PRO');
   });
 
   // ── pass-through for raw enum values ─────────────────────────────────
@@ -283,9 +285,9 @@ describe('generateScreen()', () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
-    await generateScreen('p1', 'prompt', { ...AUTH_OPTS, device: 'DEVICE_TYPE_WATCH' });
+    await generateScreen('p1', 'prompt', { ...AUTH_OPTS, device: 'AGNOSTIC' });
 
-    assert.equal(getCaptured().params.arguments.device_type, 'DEVICE_TYPE_WATCH');
+    assert.equal(getCaptured().params.arguments.deviceType, 'AGNOSTIC');
   });
 });
 
@@ -306,26 +308,23 @@ describe('editScreens()', () => {
     const captured = getCaptured();
     assert.equal(captured.params.name, 'edit_screens');
     assert.deepEqual(captured.params.arguments, {
-      parent: 'projects/proj-1',
-      screen_names: [
-        'projects/proj-1/screens/scr-a',
-        'projects/proj-1/screens/scr-b',
-      ],
-      text_prompt: 'Make it blue',
-      device_type: 'DEVICE_TYPE_DESKTOP',
-      model_id: 'MODEL_ID_FLASH',
+      projectId: 'proj-1',
+      selectedScreenIds: ['scr-a', 'scr-b'],
+      prompt: 'Make it blue',
+      deviceType: 'DESKTOP',
+      modelId: 'GEMINI_3_FLASH',
     });
     assert.equal(result, 'edited');
   });
 
-  it('formats screenIds into projects/<pid>/screens/<sid> format', async () => {
+  it('passes screenIds directly as selectedScreenIds', async () => {
     const toolResult = { content: [{ type: 'text', text: 'ok' }] };
     const { getCaptured } = mockMCPFetch(toolResult);
 
     await editScreens('my-proj', ['s1'], 'edit', AUTH_OPTS);
 
     const args = getCaptured().params.arguments;
-    assert.deepEqual(args.screen_names, ['projects/my-proj/screens/s1']);
+    assert.deepEqual(args.selectedScreenIds, ['s1']);
   });
 });
 
@@ -346,12 +345,10 @@ describe('generateVariants()', () => {
     const captured = getCaptured();
     assert.equal(captured.params.name, 'generate_variants');
     assert.deepEqual(captured.params.arguments, {
-      parent: 'projects/proj-1',
-      screen_names: [
-        'projects/proj-1/screens/scr-1',
-        'projects/proj-1/screens/scr-2',
-      ],
-      text_prompt: 'Try different colors',
+      projectId: 'proj-1',
+      selectedScreenIds: ['scr-1', 'scr-2'],
+      prompt: 'Try different colors',
+      variantOptions: {},
     });
     assert.equal(result, 'variants');
   });
@@ -379,7 +376,7 @@ describe('default MCP URL', () => {
         jsonResponse({
           jsonrpc: '2.0',
           id: body.id,
-          result: { content: [{ type: 'text', text: 'ok' }] },
+          result: { content: [{ type: 'text', text: '[]' }] },
         }),
       );
     };
@@ -413,7 +410,7 @@ describe('STITCH_MCP_URL env var', () => {
         jsonResponse({
           jsonrpc: '2.0',
           id: body.id,
-          result: { content: [{ type: 'text', text: 'ok' }] },
+          result: { content: [{ type: 'text', text: '[]' }] },
         }),
       );
     };
@@ -447,7 +444,7 @@ describe('MCP client lifecycle', () => {
         jsonResponse({
           jsonrpc: '2.0',
           id: body.id,
-          result: { content: [{ type: 'text', text: 'ok' }] },
+          result: { content: [{ type: 'text', text: '[]' }] },
         }),
       );
     };
@@ -485,7 +482,7 @@ describe('auth headers passthrough', () => {
         jsonResponse({
           jsonrpc: '2.0',
           id: body.id,
-          result: { content: [{ type: 'text', text: 'ok' }] },
+          result: { content: [{ type: 'text', text: '[]' }] },
         }),
       );
     };

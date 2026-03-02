@@ -54,9 +54,11 @@ afterEach(() => {
 
 // ── API Key auth ──────────────────────────────────────────────────────────
 
+const NO_SAVED = '/nonexistent-config';
+
 describe('API key via options', () => {
   it('returns X-Goog-Api-Key header from options.apiKey', async () => {
-    const headers = await resolveAuth({ apiKey: 'test-key', _adcPath: '/nonexistent' });
+    const headers = await resolveAuth({ apiKey: 'test-key', _adcPath: '/nonexistent', _configDir: NO_SAVED });
     assert.deepEqual(headers, { 'X-Goog-Api-Key': 'test-key' });
   });
 });
@@ -64,7 +66,7 @@ describe('API key via options', () => {
 describe('API key via env', () => {
   it('returns X-Goog-Api-Key header from STITCH_API_KEY', async () => {
     process.env.STITCH_API_KEY = 'env-key';
-    const headers = await resolveAuth({ _adcPath: '/nonexistent' });
+    const headers = await resolveAuth({ _adcPath: '/nonexistent', _configDir: NO_SAVED });
     assert.deepEqual(headers, { 'X-Goog-Api-Key': 'env-key' });
   });
 });
@@ -72,7 +74,7 @@ describe('API key via env', () => {
 describe('API key priority', () => {
   it('options.apiKey takes priority over STITCH_API_KEY env', async () => {
     process.env.STITCH_API_KEY = 'env-key';
-    const headers = await resolveAuth({ apiKey: 'opts-key', _adcPath: '/nonexistent' });
+    const headers = await resolveAuth({ apiKey: 'opts-key', _adcPath: '/nonexistent', _configDir: NO_SAVED });
     assert.deepEqual(headers, { 'X-Goog-Api-Key': 'opts-key' });
   });
 });
@@ -97,7 +99,7 @@ describe('ADC reads credentials file', () => {
     });
 
     try {
-      const headers = await resolveAuth({ _adcPath: adcPath });
+      const headers = await resolveAuth({ _adcPath: adcPath, _configDir: NO_SAVED });
       assert.deepEqual(headers, { Authorization: 'Bearer fresh-token' });
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -127,7 +129,7 @@ describe('ADC token exchange', () => {
     });
 
     try {
-      await resolveAuth({ _adcPath: adcPath });
+      await resolveAuth({ _adcPath: adcPath, _configDir: NO_SAVED });
 
       assert.equal(capturedUrl, 'https://oauth2.googleapis.com/token');
       assert.equal(capturedOpts.method, 'POST');
@@ -162,7 +164,7 @@ describe('ADC returns Bearer token', () => {
     );
 
     try {
-      const headers = await resolveAuth({ _adcPath: adcPath });
+      const headers = await resolveAuth({ _adcPath: adcPath, _configDir: NO_SAVED });
       assert.equal(headers['Authorization'], 'Bearer my-access-token');
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -187,7 +189,7 @@ describe('ADC priority', () => {
     );
 
     try {
-      const headers = await resolveAuth({ apiKey: 'opts-key', _adcPath: adcPath });
+      const headers = await resolveAuth({ apiKey: 'opts-key', _adcPath: adcPath, _configDir: NO_SAVED });
       assert.deepEqual(headers, { Authorization: 'Bearer adc-wins' });
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -202,6 +204,7 @@ describe('ADC file not found', () => {
     const headers = await resolveAuth({
       apiKey: 'fallback-key',
       _adcPath: '/nonexistent/path/adc.json',
+      _configDir: NO_SAVED,
     });
     assert.deepEqual(headers, { 'X-Goog-Api-Key': 'fallback-key' });
   });
@@ -222,7 +225,7 @@ describe('ADC token exchange fails', () => {
     );
 
     try {
-      const headers = await resolveAuth({ apiKey: 'fallback-key', _adcPath: adcPath });
+      const headers = await resolveAuth({ apiKey: 'fallback-key', _adcPath: adcPath, _configDir: NO_SAVED });
       assert.deepEqual(headers, { 'X-Goog-Api-Key': 'fallback-key' });
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -242,7 +245,7 @@ describe('ADC file has wrong format', () => {
     writeFileSync(adcPath, JSON.stringify({ client_id: 'only-this' }));
 
     try {
-      const headers = await resolveAuth({ apiKey: 'fallback-key', _adcPath: adcPath });
+      const headers = await resolveAuth({ apiKey: 'fallback-key', _adcPath: adcPath, _configDir: NO_SAVED });
       assert.deepEqual(headers, { 'X-Goog-Api-Key': 'fallback-key' });
     } finally {
       rmSync(tmpDir, { recursive: true, force: true });
@@ -255,7 +258,7 @@ describe('ADC file has wrong format', () => {
 describe('No auth available', () => {
   it('throws an error when no auth method succeeds', async () => {
     await assert.rejects(
-      () => resolveAuth({ _adcPath: '/nonexistent' }),
+      () => resolveAuth({ _adcPath: '/nonexistent', _configDir: NO_SAVED }),
       (err) => {
         assert.ok(err instanceof Error);
         return true;
@@ -265,15 +268,91 @@ describe('No auth available', () => {
 });
 
 describe('Error message is helpful', () => {
-  it('mentions all three auth methods in the error message', async () => {
+  it('mentions all auth methods in the error message', async () => {
     await assert.rejects(
-      () => resolveAuth({ _adcPath: '/nonexistent' }),
+      () => resolveAuth({ _adcPath: '/nonexistent', _configDir: NO_SAVED }),
       (err) => {
+        assert.ok(err.message.includes('stitch login'));
         assert.ok(err.message.includes('gcloud auth application-default login'));
         assert.ok(err.message.includes('--api-key'));
         assert.ok(err.message.includes('STITCH_API_KEY'));
         return true;
       },
     );
+  });
+});
+
+// ── Saved credentials (stitch login) ────────────────────────────────────
+
+describe('Saved credentials', () => {
+  it('uses saved credentials when available', async () => {
+    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const tmpDir = join(import.meta.dirname, '.tmp-saved-creds');
+
+    mkdirSync(tmpDir, { recursive: true });
+    writeFileSync(
+      join(tmpDir, 'credentials.json'),
+      JSON.stringify({ refresh_token: 'saved-rt', client_id: 'saved-cid' }),
+    );
+
+    mockFetch(() =>
+      Promise.resolve(jsonResponse({ access_token: 'saved-access', expires_in: 3600 })),
+    );
+
+    try {
+      const headers = await resolveAuth({ _adcPath: '/nonexistent', _configDir: tmpDir });
+      assert.deepEqual(headers, { Authorization: 'Bearer saved-access' });
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('saved credentials take priority over ADC and API key', async () => {
+    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const tmpDir = join(import.meta.dirname, '.tmp-saved-priority');
+
+    mkdirSync(tmpDir, { recursive: true });
+    writeFileSync(
+      join(tmpDir, 'credentials.json'),
+      JSON.stringify({ refresh_token: 'saved-rt', client_id: 'saved-cid' }),
+    );
+
+    process.env.STITCH_API_KEY = 'env-key';
+
+    mockFetch(() =>
+      Promise.resolve(jsonResponse({ access_token: 'saved-wins', expires_in: 3600 })),
+    );
+
+    try {
+      const headers = await resolveAuth({ apiKey: 'opts-key', _adcPath: '/nonexistent', _configDir: tmpDir });
+      assert.deepEqual(headers, { Authorization: 'Bearer saved-wins' });
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
+
+  it('falls through to ADC when saved refresh fails', async () => {
+    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const tmpDir = join(import.meta.dirname, '.tmp-saved-fail');
+
+    mkdirSync(tmpDir, { recursive: true });
+    writeFileSync(
+      join(tmpDir, 'credentials.json'),
+      JSON.stringify({ refresh_token: 'expired-rt', client_id: 'old-cid' }),
+    );
+
+    mockFetch(() =>
+      Promise.resolve(new Response('Unauthorized', { status: 401 })),
+    );
+
+    try {
+      const headers = await resolveAuth({ apiKey: 'fallback', _adcPath: '/nonexistent', _configDir: tmpDir });
+      assert.deepEqual(headers, { 'X-Goog-Api-Key': 'fallback' });
+    } finally {
+      rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

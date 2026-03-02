@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://stitch.akarispeed.xyz/sitemap.xml

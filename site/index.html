@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>stitch — AI UI design from your terminal</title>
+  <meta name="description" content="Zero-dependency CLI for Google Stitch. Generate production-ready HTML/CSS from text prompts. Pipe-friendly, composable, works anywhere.">
+  <meta property="og:title" content="stitch — AI UI design from your terminal">
+  <meta property="og:description" content="Zero-dependency CLI for Google Stitch. Generate production-ready HTML/CSS from text prompts.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://stitch.akarispeed.xyz">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            slate: {
+              950: '#0a0f1a',
+            },
+            brand: {
+              DEFAULT: '#22C55E',
+              light: '#4ade80',
+              dark: '#16a34a',
+            },
+            surface: {
+              DEFAULT: '#1E293B',
+              light: '#334155',
+            }
+          },
+          fontFamily: {
+            sans: ['IBM Plex Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+  <style>
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .cursor-blink { animation: blink 1s step-end infinite; }
+
+    @keyframes typeIn {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      opacity: 0;
+      animation: fadeUp 0.6s ease-out forwards;
+    }
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+    .delay-400 { animation-delay: 0.4s; }
+    .delay-500 { animation-delay: 0.5s; }
+    .delay-600 { animation-delay: 0.6s; }
+
+    .terminal-line {
+      opacity: 0;
+      animation: fadeUp 0.4s ease-out forwards;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #0a0f1a; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+
+    /* Selection */
+    ::selection { background: #22C55E33; color: #F8FAFC; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-200 font-sans antialiased">
+
+  <!-- Nav -->
+  <nav class="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-xl">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="#" class="flex items-center gap-3 cursor-pointer group">
+        <div class="w-8 h-8 rounded-lg bg-brand/10 border border-brand/20 flex items-center justify-center group-hover:bg-brand/20 transition-colors duration-200">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-brand">
+            <polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>
+          </svg>
+        </div>
+        <span class="font-mono font-semibold text-white text-lg tracking-tight">stitch</span>
+      </a>
+      <div class="flex items-center gap-4 sm:gap-6">
+        <a href="#features" class="text-sm text-slate-400 hover:text-white transition-colors duration-200 cursor-pointer hidden sm:block">Features</a>
+        <a href="#commands" class="text-sm text-slate-400 hover:text-white transition-colors duration-200 cursor-pointer hidden sm:block">Commands</a>
+        <a href="#install" class="text-sm text-slate-400 hover:text-white transition-colors duration-200 cursor-pointer hidden sm:block">Install</a>
+        <a href="https://github.com/vedanth-krazimo/stitch-cli" target="_blank" rel="noopener" class="flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors duration-200 cursor-pointer">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+          <span class="hidden sm:inline">GitHub</span>
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="relative min-h-screen flex items-center overflow-hidden pt-16">
+    <!-- Grid background -->
+    <div class="absolute inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:60px_60px]"></div>
+    <!-- Radial glow -->
+    <div class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-brand/5 rounded-full blur-[120px]"></div>
+
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-20 sm:py-32">
+      <div class="max-w-3xl">
+        <div class="animate-fade-up">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-brand/20 bg-brand/5 text-brand text-xs font-medium mb-8">
+            <span class="w-1.5 h-1.5 rounded-full bg-brand animate-pulse"></span>
+            Zero dependencies. Pipe-friendly. Production-ready.
+          </div>
+        </div>
+
+        <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight animate-fade-up delay-100">
+          AI UI design<br>
+          <span class="text-brand">from your terminal.</span>
+        </h1>
+
+        <p class="mt-6 sm:mt-8 text-lg sm:text-xl text-slate-400 max-w-xl leading-relaxed animate-fade-up delay-200">
+          Generate production-ready HTML/CSS from text prompts using Google Stitch.
+          No SDK, no dependencies — just <span class="font-mono text-slate-300 bg-surface/50 px-1.5 py-0.5 rounded text-base">fetch()</span> and the MCP protocol.
+        </p>
+
+        <div class="mt-8 sm:mt-10 flex flex-col sm:flex-row gap-3 animate-fade-up delay-300">
+          <button onclick="copyInstall()" id="install-btn" class="group flex items-center gap-3 px-5 py-3.5 rounded-xl bg-surface border border-white/10 hover:border-brand/30 transition-all duration-200 cursor-pointer">
+            <span class="font-mono text-sm text-slate-300">$</span>
+            <span class="font-mono text-sm text-white">npm install -g stitch-terminal</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500 group-hover:text-brand transition-colors duration-200 ml-2 flex-shrink-0">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+            </svg>
+          </button>
+          <a href="https://github.com/vedanth-krazimo/stitch-cli" target="_blank" rel="noopener" class="flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-brand hover:bg-brand-light text-slate-950 font-semibold text-sm transition-colors duration-200 cursor-pointer">
+            View on GitHub
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Terminal demo -->
+      <div class="mt-16 sm:mt-20 animate-fade-up delay-400">
+        <div class="rounded-2xl border border-white/10 bg-surface/50 backdrop-blur-sm overflow-hidden shadow-2xl shadow-black/40">
+          <!-- Terminal header -->
+          <div class="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-surface/80">
+            <div class="w-3 h-3 rounded-full bg-red-500/60"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500/60"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500/60"></div>
+            <span class="ml-3 text-xs text-slate-500 font-mono">terminal</span>
+          </div>
+          <!-- Terminal body -->
+          <div class="p-5 sm:p-6 font-mono text-sm leading-7 overflow-x-auto">
+            <div class="terminal-line" style="animation-delay: 0.2s">
+              <span class="text-brand">$</span> <span class="text-white">stitch login</span>
+            </div>
+            <div class="terminal-line text-slate-500" style="animation-delay: 0.6s">
+              Opening browser for Google sign-in...
+            </div>
+            <div class="terminal-line text-brand" style="animation-delay: 1.0s">
+              Logged in successfully!
+            </div>
+            <div class="terminal-line mt-4" style="animation-delay: 1.4s">
+              <span class="text-brand">$</span> <span class="text-white">stitch generate abc123 "A login page with dark theme"</span>
+            </div>
+            <div class="terminal-line text-slate-500" style="animation-delay: 1.8s">
+              Generating screen...
+            </div>
+            <div class="terminal-line text-slate-400" style="animation-delay: 2.2s">
+              {projectId: "abc123", screens: [{title: "Dark Login", id: "scr-1"}]}
+            </div>
+            <div class="terminal-line mt-4" style="animation-delay: 2.6s">
+              <span class="text-brand">$</span> <span class="text-white">stitch download abc123 scr-1 -o login.html</span>
+            </div>
+            <div class="terminal-line text-brand" style="animation-delay: 3.0s">
+              Saved to login.html <span class="text-slate-500">(20KB)</span>
+            </div>
+            <div class="terminal-line mt-4" style="animation-delay: 3.4s">
+              <span class="text-brand">$</span> <span class="text-white">open login.html</span><span class="cursor-blink text-brand">_</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="relative py-24 sm:py-32">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">Built for developers</h2>
+        <p class="mt-4 text-slate-400 text-lg max-w-2xl mx-auto">Everything you need to integrate AI-generated UI into your workflow. Nothing you don't.</p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+        <!-- Feature 1 -->
+        <div class="group p-6 rounded-2xl border border-white/5 bg-surface/30 hover:bg-surface/50 hover:border-brand/10 transition-all duration-200 cursor-default">
+          <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+          </div>
+          <h3 class="font-semibold text-white text-lg">Zero Dependencies</h3>
+          <p class="mt-2 text-slate-400 text-sm leading-relaxed">Only Node.js built-in <code class="font-mono text-xs bg-white/5 px-1 py-0.5 rounded">fetch()</code>. No SDK, no framework, no bloat. Install and run instantly.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="group p-6 rounded-2xl border border-white/5 bg-surface/30 hover:bg-surface/50 hover:border-brand/10 transition-all duration-200 cursor-default">
+          <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+          </div>
+          <h3 class="font-semibold text-white text-lg">Pipe-Friendly</h3>
+          <p class="mt-2 text-slate-400 text-sm leading-relaxed">Stdout-first design. Pipe HTML to files, <code class="font-mono text-xs bg-white/5 px-1 py-0.5 rounded">jq</code> for JSON, or chain with other tools. Unix philosophy.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="group p-6 rounded-2xl border border-white/5 bg-surface/30 hover:bg-surface/50 hover:border-brand/10 transition-all duration-200 cursor-default">
+          <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <h3 class="font-semibold text-white text-lg">OAuth Login</h3>
+          <p class="mt-2 text-slate-400 text-sm leading-relaxed">One command to sign in with Google. Opens your browser, handles the PKCE flow, saves credentials. Run <code class="font-mono text-xs bg-white/5 px-1 py-0.5 rounded">stitch login</code> and go.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="group p-6 rounded-2xl border border-white/5 bg-surface/30 hover:bg-surface/50 hover:border-brand/10 transition-all duration-200 cursor-default">
+          <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </div>
+          <h3 class="font-semibold text-white text-lg">Real HTML Output</h3>
+          <p class="mt-2 text-slate-400 text-sm leading-relaxed">Download production-ready HTML/CSS directly. No intermediate formats, no conversion steps. Open in any browser.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="group p-6 rounded-2xl border border-white/5 bg-surface/30 hover:bg-surface/50 hover:border-brand/10 transition-all duration-200 cursor-default">
+          <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+          </div>
+          <h3 class="font-semibold text-white text-lg">MCP Protocol</h3>
+          <p class="mt-2 text-slate-400 text-sm leading-relaxed">Speaks Streamable HTTP (JSON-RPC) directly to Google's official MCP server. No proxy, no middleware.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="group p-6 rounded-2xl border border-white/5 bg-surface/30 hover:bg-surface/50 hover:border-brand/10 transition-all duration-200 cursor-default">
+          <div class="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-brand"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h3 class="font-semibold text-white text-lg">Full Design Workflow</h3>
+          <p class="mt-2 text-slate-400 text-sm leading-relaxed">Create projects, generate screens, edit designs, produce variants, and download — all from one CLI.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Commands -->
+  <section id="commands" class="relative py-24 sm:py-32 border-t border-white/5">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">Every command you need</h2>
+        <p class="mt-4 text-slate-400 text-lg">Simple verbs, powerful results.</p>
+      </div>
+
+      <div class="max-w-3xl mx-auto">
+        <div class="rounded-2xl border border-white/10 bg-surface/30 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-white/5">
+                  <th class="text-left px-6 py-4 text-slate-400 font-medium">Command</th>
+                  <th class="text-left px-6 py-4 text-slate-400 font-medium">Description</th>
+                </tr>
+              </thead>
+              <tbody class="font-mono">
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch login</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">Sign in with Google (browser-based OAuth)</td>
+                </tr>
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch projects</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">List all your projects</td>
+                </tr>
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch screens &lt;id&gt;</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">List screens in a project</td>
+                </tr>
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch generate &lt;id&gt; "prompt"</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">Generate a new screen from text</td>
+                </tr>
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch edit &lt;id&gt; &lt;screens&gt; "prompt"</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">Edit existing screens with AI</td>
+                </tr>
+                <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch download &lt;id&gt; &lt;screen&gt;</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">Download screen as HTML file</td>
+                </tr>
+                <tr class="hover:bg-white/[0.02] transition-colors duration-150">
+                  <td class="px-6 py-3.5 text-brand whitespace-nowrap">stitch logout</td>
+                  <td class="px-6 py-3.5 text-slate-300 font-sans">Remove saved credentials</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Options -->
+        <div class="mt-8 grid sm:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl border border-white/5 bg-surface/20">
+            <div class="font-mono text-xs text-brand mb-2">--device</div>
+            <p class="text-sm text-slate-400">desktop, mobile, or tablet</p>
+          </div>
+          <div class="p-4 rounded-xl border border-white/5 bg-surface/20">
+            <div class="font-mono text-xs text-brand mb-2">--model</div>
+            <p class="text-sm text-slate-400">flash (fast) or pro (quality)</p>
+          </div>
+          <div class="p-4 rounded-xl border border-white/5 bg-surface/20">
+            <div class="font-mono text-xs text-brand mb-2">--json</div>
+            <p class="text-sm text-slate-400">Raw JSON output for scripting</p>
+          </div>
+          <div class="p-4 rounded-xl border border-white/5 bg-surface/20">
+            <div class="font-mono text-xs text-brand mb-2">-o &lt;path&gt;</div>
+            <p class="text-sm text-slate-400">Custom output file path</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="relative py-24 sm:py-32 border-t border-white/5">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-bold text-white">How it works</h2>
+        <p class="mt-4 text-slate-400 text-lg">Three lines. That's the whole architecture.</p>
+      </div>
+
+      <div class="max-w-3xl mx-auto">
+        <div class="relative">
+          <!-- Vertical line -->
+          <div class="absolute left-6 top-6 bottom-6 w-px bg-gradient-to-b from-brand/50 via-brand/20 to-transparent hidden sm:block"></div>
+
+          <!-- Step 1 -->
+          <div class="flex gap-6 mb-12">
+            <div class="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center flex-shrink-0">
+              <span class="font-mono font-bold text-brand">1</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-white text-lg">Authenticate</h3>
+              <p class="mt-2 text-slate-400 leading-relaxed"><code class="font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded text-slate-300">stitch login</code> opens your browser, runs OAuth2 with PKCE, and saves a refresh token locally. Or use an API key — your choice.</p>
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="flex gap-6 mb-12">
+            <div class="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center flex-shrink-0">
+              <span class="font-mono font-bold text-brand">2</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-white text-lg">Talk MCP</h3>
+              <p class="mt-2 text-slate-400 leading-relaxed">The CLI sends JSON-RPC messages to <code class="font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded text-slate-300">stitch.googleapis.com/mcp</code> using <code class="font-mono text-xs bg-white/5 px-1.5 py-0.5 rounded text-slate-300">fetch()</code>. Initialize session, call tools, get results. ~80 lines of client code.</p>
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="flex gap-6">
+            <div class="w-12 h-12 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center flex-shrink-0">
+              <span class="font-mono font-bold text-brand">3</span>
+            </div>
+            <div>
+              <h3 class="font-semibold text-white text-lg">Get HTML</h3>
+              <p class="mt-2 text-slate-400 leading-relaxed">Stitch's AI generates full-page designs. The CLI extracts the HTML download URL, fetches the content, and writes it to your file system. Production-ready.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Install CTA -->
+  <section id="install" class="relative py-24 sm:py-32 border-t border-white/5">
+    <div class="absolute inset-0 bg-gradient-to-t from-brand/5 to-transparent"></div>
+    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl sm:text-4xl font-bold text-white">Get started in seconds</h2>
+      <p class="mt-4 text-slate-400 text-lg">One install. One login. Then generate.</p>
+
+      <div class="mt-10 max-w-xl mx-auto">
+        <div class="rounded-2xl border border-white/10 bg-surface/50 p-6 font-mono text-sm text-left leading-8">
+          <div><span class="text-slate-500"># Install globally</span></div>
+          <div><span class="text-brand">$</span> <span class="text-white">npm install -g stitch-terminal</span></div>
+          <div class="mt-4"><span class="text-slate-500"># Sign in</span></div>
+          <div><span class="text-brand">$</span> <span class="text-white">stitch login</span></div>
+          <div class="mt-4"><span class="text-slate-500"># Generate a UI</span></div>
+          <div><span class="text-brand">$</span> <span class="text-white">stitch generate &lt;project-id&gt; "A dashboard with charts"</span></div>
+          <div class="mt-4"><span class="text-slate-500"># Download the HTML</span></div>
+          <div><span class="text-brand">$</span> <span class="text-white">stitch download &lt;project-id&gt; &lt;screen-id&gt; -o dashboard.html</span></div>
+        </div>
+      </div>
+
+      <div class="mt-10 flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="https://github.com/vedanth-krazimo/stitch-cli" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-brand hover:bg-brand-light text-slate-950 font-semibold text-sm transition-colors duration-200 cursor-pointer">
+          View on GitHub
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H7M17 7v10"/></svg>
+        </a>
+        <a href="https://www.npmjs.com/package/stitch-terminal" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl border border-white/10 hover:border-brand/30 text-white font-semibold text-sm transition-all duration-200 cursor-pointer">
+          npm package
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/5 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <span class="font-mono text-sm text-slate-500">stitch-terminal</span>
+        <span class="text-slate-600">v1.0.0</span>
+      </div>
+      <div class="flex items-center gap-6 text-sm text-slate-500">
+        <a href="https://github.com/vedanth-krazimo/stitch-cli" target="_blank" rel="noopener" class="hover:text-white transition-colors duration-200 cursor-pointer">GitHub</a>
+        <a href="https://www.npmjs.com/package/stitch-terminal" target="_blank" rel="noopener" class="hover:text-white transition-colors duration-200 cursor-pointer">npm</a>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    function copyInstall() {
+      navigator.clipboard.writeText('npm install -g stitch-terminal');
+      const btn = document.getElementById('install-btn');
+      const original = btn.innerHTML;
+      btn.querySelector('span:nth-child(2)').textContent = 'Copied!';
+      setTimeout(() => {
+        btn.querySelector('span:nth-child(2)').textContent = 'npm install -g stitch-terminal';
+      }, 2000);
+    }
+
+    // Intersection Observer for scroll animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = '1';
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('#features > div > div > div, #commands table tbody tr').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(16px)';
+      el.style.transition = 'opacity 0.5s ease-out, transform 0.5s ease-out';
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>

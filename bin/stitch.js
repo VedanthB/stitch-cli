@@ -15,6 +15,7 @@ const HELP = `stitch v${pkg.version} — AI UI design from your terminal (Google
 Usage:
   stitch login                             Log in with Google OAuth
   stitch logout                            Remove saved credentials
+  stitch create "title"                    Create a new project
   stitch projects                          List all projects
   stitch project <id>                      Get project details
   stitch screens <project-id>              List screens in a project
@@ -84,6 +85,17 @@ async function main() {
       case 'logout': {
         logout()
         console.error('Logged out.')
+        break
+      }
+      case 'create': {
+        if (!args[0]) { console.error('Error: project title required'); process.exit(1) }
+        const project = await stitch.createProject(args[0], options)
+        const id = project?.name?.split('/')?.pop() || project?.name
+        if (options.json) {
+          console.log(JSON.stringify(project, null, 2))
+        } else {
+          console.log(`${id}  ${project?.title || args[0]}`)
+        }
         break
       }
       case 'projects': {
